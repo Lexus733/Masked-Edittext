@@ -9,5 +9,6 @@
         <attr name="maskIcon" format="reference"/>
         <attr name="maskIconColor" format="reference"/>
         <attr name="android:inputType"/>
+        <attr name="ignoredSymbols" format="string"/>
     </declare-styleable>
 </resources>

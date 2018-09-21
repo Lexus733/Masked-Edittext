@@ -35,13 +35,17 @@ public class MaskedEditText extends AppCompatEditText implements View.OnTouchLis
     private Context context;
     private String mask;
     private String notMaskedSymbol;
+    private ArrayList<Character> ignoredSymbols;
 
     private String deleteChar;
     private String replacementChar;
-    @Nullable private String format;
+    @Nullable
+    private String format;
     private boolean required;
-    @Nullable private MaskIconCallback maskIconCallback;
-    @Nullable private IconCallback iconCallback;
+    @Nullable
+    private MaskIconCallback maskIconCallback;
+    @Nullable
+    private IconCallback iconCallback;
     private Drawable maskIcon;
 
     private ArrayList<Integer> listValidCursorPositions = new ArrayList<>();
@@ -62,6 +66,14 @@ public class MaskedEditText extends AppCompatEditText implements View.OnTouchLis
         if (maskIcon != -1)
             drawable = this.getResources().getDrawable(maskIcon);
         init(context, mask, notMaskedSymbol, null, format, drawable, null, iconCallback);
+    }
+
+    private MaskedEditText(Context context, String mask, String notMaskedSymbol, String format, @DrawableRes int maskIcon, IconCallback iconCallback, ArrayList<Character> ignoredSymbols) {
+        super(context);
+        Drawable drawable = null;
+        if (maskIcon != -1)
+            drawable = this.getResources().getDrawable(maskIcon);
+        init(context, mask, notMaskedSymbol, null, format, drawable, null, iconCallback, ignoredSymbols);
     }
 
     public MaskedEditText(Context context, AttributeSet attrs) {
@@ -86,6 +98,25 @@ public class MaskedEditText extends AppCompatEditText implements View.OnTouchLis
         this.maskIconCallback = maskIconCallback;
         this.iconCallback = iconCallback;
         this.format = format;
+
+        initByAttributes(context, attrs);
+        initMaskIcon();
+
+        this.setLongClickable(false);
+        this.setSingleLine(true);
+        this.setFocusable(true);
+        this.setFocusableInTouchMode(true);
+    }
+
+    private void init(Context context, String mask, String notMaskedSymbol, AttributeSet attrs, String format, Drawable maskIcon, MaskIconCallback maskIconCallback, IconCallback iconCallback, ArrayList<Character> ignoredSymbols) {
+        this.context = context;
+        this.mask = mask;
+        this.notMaskedSymbol = notMaskedSymbol;
+        this.maskIcon = maskIcon;
+        this.maskIconCallback = maskIconCallback;
+        this.iconCallback = iconCallback;
+        this.format = format;
+        this.ignoredSymbols = ignoredSymbols;
 
         initByAttributes(context, attrs);
         initMaskIcon();
@@ -128,6 +159,17 @@ public class MaskedEditText extends AppCompatEditText implements View.OnTouchLis
             String format = a.getString(R.styleable.MaskedEditText_format);
             if (format == null && this.format == null) this.format = "";
             else if (!TextUtils.isEmpty(format) && this.format == null) this.format = format;
+
+            String ignoredSymbolss = a.getString(R.styleable.MaskedEditText_ignoredSymbols);
+            if (ignoredSymbolss == null && this.ignoredSymbols == null)
+                this.ignoredSymbols = new ArrayList<Character>();
+            else if (!TextUtils.isEmpty(ignoredSymbolss) && this.ignoredSymbols == null) {
+                ArrayList<Character> characters = new ArrayList<>();
+                for (int i = 0; i < ignoredSymbolss.length(); i++) {
+                    characters.add(ignoredSymbolss.charAt(i));
+                }
+                this.ignoredSymbols = characters;
+            }
 
             initListValidCursorPositions(mask, notMaskedSymbol);
 
@@ -175,7 +217,7 @@ public class MaskedEditText extends AppCompatEditText implements View.OnTouchLis
                 type == InputType.TYPE_NUMBER_FLAG_DECIMAL ||
                 type == InputType.TYPE_CLASS_PHONE) {
             final String symbolExceptions = getSymbolExceptions();
-            this.setKeyListener(DigitsKeyListener.getInstance("0123456789." + symbolExceptions));
+            this.setKeyListener(DigitsKeyListener.getInstance("0123456789.+-*/#()," + symbolExceptions));
         } else {
             super.setInputType(type);
         }
@@ -242,6 +284,37 @@ public class MaskedEditText extends AppCompatEditText implements View.OnTouchLis
         }
     }
 
+    public void setMaskedTextWithIgnore(String input) {
+        if (input != null) {
+            StringBuilder finalText = new StringBuilder();
+            Integer place = 0;
+            Editable text = this.getText();
+            if (text != null) {
+                try {
+                    for (int i = 0; i < mask.length(); i++) {
+                        if (!listValidCursorPositions.contains(i) && ignoredSymbols.contains(mask.charAt(i))) {
+                            finalText.insert(i, String.valueOf(mask.charAt(i)));
+                        } else if (listValidCursorPositions.contains(i) && ignoredSymbols.contains(mask.charAt(i))) {
+                            finalText.insert(i, String.valueOf(mask.charAt(i)));
+                        } else if (!listValidCursorPositions.contains(i) && !ignoredSymbols.contains(mask.charAt(i))) {
+                            finalText.insert(i, String.valueOf(mask.charAt(i)));
+                            place++;
+                        } else {
+                            finalText.insert(i, String.valueOf(input.charAt(place)));
+                            place++;
+                        }
+                    }
+                    maskedInputFilter.setTextSetup(true);
+                    this.setText(finalText.toString());
+                    maskedInputFilter.setTextSetup(false);
+                } catch (IndexOutOfBoundsException e) {
+                    e.printStackTrace();
+                    setMaskedText(" ");
+                }
+            }
+        }
+    }
+
     @NonNull
     private String formatText(String input, String pattern) {
         Pattern p = Pattern.compile("(\\[[\\d]+])");
@@ -259,10 +332,6 @@ public class MaskedEditText extends AppCompatEditText implements View.OnTouchLis
         return String.valueOf(input.toCharArray()[i - 1]);
     }
 
-    /**
-     * Use builder
-     */
-    @Deprecated
     public void setFormat(@Nullable String format) {
         this.format = format;
     }
@@ -275,12 +344,63 @@ public class MaskedEditText extends AppCompatEditText implements View.OnTouchLis
         this.required = required;
     }
 
-    /**
-     * Use builder
-     */
-    @Deprecated
-    public void setMask(String mask) {
+    public void setIgnoredSymbols(ArrayList<Character> ignoredSymbols) {
+        this.ignoredSymbols = ignoredSymbols;
+    }
+
+    public void setNotMaskedSymbol(String notMaskedSymbol) {
+        this.setFilters(new InputFilter[]{});
+        this.notMaskedSymbol = notMaskedSymbol;
+        this.replacementChar = " ";
+        this.deleteChar = " ";
+        this.listValidCursorPositions = new ArrayList<>();
+        initListValidCursorPositions(mask, notMaskedSymbol);
+        this.filteredMask = mask.replace(notMaskedSymbol, replacementChar);
+        this.setText(filteredMask, BufferType.NORMAL);
+        this.maskedInputFilter = new MaskedInputFilter();
+        this.setFilters(new InputFilter[]{maskedInputFilter});
+    }
+
+    public void setMaskAndNotMaskedSymbol(String mask, String notMaskedSymbol) {
+        this.setFilters(new InputFilter[]{});
+        this.mask = mask;//buffer.insert(i,input.charAt(input.length()-1));
+        this.notMaskedSymbol = notMaskedSymbol;
+        this.replacementChar = " ";
+        this.deleteChar = " ";
+        this.listValidCursorPositions = new ArrayList<>();
+        initListValidCursorPositions(mask, notMaskedSymbol);
+        this.filteredMask = mask.replace(notMaskedSymbol, replacementChar);
+        this.setText(filteredMask, BufferType.NORMAL);
+        this.maskedInputFilter = new MaskedInputFilter();
+        this.setFilters(new InputFilter[]{maskedInputFilter});
+    }
+
+    public void setMaskAndNotMaskedSymbolWithIgnore(String mask, String notMaskedSymbol, ArrayList<Character> ignoredSymbols) {
+        this.setFilters(new InputFilter[]{});
         this.mask = mask;
+        this.notMaskedSymbol = notMaskedSymbol;
+        this.ignoredSymbols = ignoredSymbols;
+        this.replacementChar = " ";
+        this.deleteChar = " ";
+        this.listValidCursorPositions = new ArrayList<>();
+        initListValidCursorPositions(mask, notMaskedSymbol);
+        this.filteredMask = mask.replace(notMaskedSymbol, replacementChar);
+        this.setText(filteredMask, BufferType.NORMAL);
+        this.maskedInputFilter = new MaskedInputFilter();
+        this.setFilters(new InputFilter[]{maskedInputFilter});
+    }
+
+    public void setMask(String mask) {
+        this.setFilters(new InputFilter[]{});
+        this.mask = mask;
+        this.replacementChar = " ";
+        this.deleteChar = " ";
+        this.listValidCursorPositions = new ArrayList<>();
+        initListValidCursorPositions(mask, notMaskedSymbol);
+        this.filteredMask = mask.replace(notMaskedSymbol, replacementChar);
+        this.setText(filteredMask, BufferType.NORMAL);
+        this.maskedInputFilter = new MaskedInputFilter();
+        this.setFilters(new InputFilter[]{maskedInputFilter});
     }
 
     @Override
@@ -326,18 +446,10 @@ public class MaskedEditText extends AppCompatEditText implements View.OnTouchLis
         return false;
     }
 
-    /**
-     * Use setIconCallback method
-     */
-    @Deprecated
     public void setMaskIconCallback(@Nullable MaskIconCallback maskIconCallback) {
         this.maskIconCallback = maskIconCallback;
     }
 
-    /**
-     * Use IconCallback interface
-     */
-    @Deprecated
     public interface MaskIconCallback {
         void onIconPushed();
     }
@@ -489,6 +601,7 @@ public class MaskedEditText extends AppCompatEditText implements View.OnTouchLis
         private int icon = -1;
         private IconCallback iconCallback = null;
         private String format = null;
+        private ArrayList<Character> ignoredSymbols = null;
 
         public Builder(Context context) {
             this.context = context;
@@ -519,8 +632,13 @@ public class MaskedEditText extends AppCompatEditText implements View.OnTouchLis
             return this;
         }
 
+        public Builder ignoredSymbols(ArrayList<Character> ignoredSymbols) {
+            this.ignoredSymbols = ignoredSymbols;
+            return this;
+        }
+
         public MaskedEditText build() {
-            return new MaskedEditText(context, mask, notMaskedSymbol, format, icon, iconCallback);
+            return new MaskedEditText(context, mask, notMaskedSymbol, format, icon, iconCallback, ignoredSymbols);
         }
     }
 }

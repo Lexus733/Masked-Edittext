@@ -15,17 +15,55 @@
         android:paddingRight="@dimen/activity_horizontal_margin"
         android:paddingTop="@dimen/activity_vertical_margin"
         tools:context="com.github.pinball83.app.MainActivity">
-
+    <com.github.pinball83.maskededittext.MaskedEditText
+        android:id="@+id/masked"
+        app:maskIcon="@drawable/ic_account_circle"
+        android:layout_width="match_parent"
+        app:mask="+7(***) ***-**-**"
+        app:notMaskedSymbol="*"
+        app:ignoredSymbols="(- )"
+        android:layout_height="wrap_content" />
+        <TextView
+            android:id="@+id/textView"
+            android:textSize="24sp"
+            android:layout_marginTop="8dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+        <TextView
+            android:id="@+id/textView2"
+            android:textSize="24sp"
+            android:layout_marginTop="8dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
         <com.github.pinball83.maskededittext.MaskedEditText
-            android:id="@+id/masked_edit_text"
+            android:id="@+id/masked3"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="number"
-            app:mask="8 (***) *** **-**"
-            app:maskIcon="@android:drawable/ic_menu_close_clear_cancel"
-            app:format="[1][2][3] [4][5][6]-[7][8]-[10][9]"
-            app:maskIconColor="@color/colorPrimary"
-            app:notMaskedSymbol="*" />
-
+            android:inputType="phone" />
+        <EditText
+            android:id="@+id/editText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+        <Button
+            android:id="@+id/toEditText"
+            android:text="Test Set Masked TextTupo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+        <com.github.pinball83.maskededittext.MaskedEditText
+            android:id="@+id/masked4"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:mask="888---777***222^111fsdf34ofio24hg2phg"
+            app:notMaskedSymbol="8"
+            android:inputType="textPassword"/>
+        <Button
+            android:id="@+id/toMaskedEditText"
+            android:text="Test Set Symbol (standart 8)"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+        <EditText
+            android:id="@+id/editText1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
     </LinearLayout>
 </ScrollView>

@@ -25,7 +25,7 @@ android {
 }
 
 dependencies {
-    compile project(':masked-edittext')
-    compile 'com.android.support:appcompat-v7:27.0.2'
-    testCompile 'junit:junit:4.12'
+    implementation project(':masked-edittext')
+    implementation 'com.android.support:appcompat-v7:27.0.2'
+    testImplementation 'junit:junit:4.12'
 }
